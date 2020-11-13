@@ -149,5 +149,104 @@ function closure() {
 
 #### 2. 策略模式
 
-定义：定义一系列的算法，把它们一个个封装起来，并且使它们可以相互替换。
+定义：定义一系列的算法，把它们一个个封装成策略类，并且使它们可以相互替换。
 
+```
+/**
+ * 根据级别获取对应的奖励
+ */
+function getScoreBonus() {
+  let strategies = {
+    'A': function(base){
+      return base * 3
+    },
+    'B': function(base){
+      return base * 2
+    },
+    'C': function(base){
+      return base * 1
+    }
+  }
+  function calculateBonus(base, type) {
+    return strategies[type](base);
+  }
+  console.log(calculateBonus(100, "A"));
+  console.log(calculateBonus(100, "B"));
+}
+```
+
+策略模式还可以用来实现动画效果，比如根据原始位置，目标位置，执行时间，方向等需要一系列参数计算出最后的结果；还可以用来做表单验证：
+
+```
+/**
+ * 策略模式的表单验证
+ */
+function form() {
+  // 校验规则
+  let strategries = {
+    checkEmpty: function(value, errMsg) { // 检查空值
+      if(value === '') {
+        return `${value}:${errMsg}`;
+      }
+    },
+    checkLength: function(value, length, errMsg) { // 检验长度
+      if(value.length < length) {
+        return `${value}:${errMsg}`;
+      }
+    },
+    isMobile: function(value, errMsg) {
+      if(!/(^1[3|5|8][0-9]{9}$)/.test(value)) { // 检查手机号
+        return `${value}:${errMsg}`;
+      }
+    }
+  }
+  var validator = function() { 
+    this.cache = [];  // 存储检验方法
+  }
+  // 添加验证项
+  validator.prototype.add = function(value, rules) {
+    var self = this;             
+    for ( var i = 0, rule; rule = rules[ i++ ]; ){ 
+      (function(rule) {
+        var arr = rule.strategy.split(":");
+        self.cache.push(function() {
+          let strategy = arr.shift();
+          arr.unshift(value);
+          arr.push(rule.errorMsg);
+          return strategries[strategy].apply(value, arr)
+        })
+      })(rule);
+    }
+  }
+  // 检验所有项
+  validator.prototype.check = function() {
+    let errorArr = [];
+    for(let i = 0, func; func = this.cache[i++];) {
+      let msg = func();
+      if(msg) {
+        errorArr.push(msg);
+      }
+    }
+    return errorArr;
+  }
+  // 校验
+  let validateObj = new validator();
+  validateObj.add("12345", [{strategy: "isMobile", errorMsg: "手机格式错误"}]);
+  validateObj.add("张翠山", [{strategy: "checkLength:2", errorMsg: "长度最少2位"}]);
+  validateObj.add("", [{strategy: "checkEmpty", errorMsg: "不能为空"}]);
+  var errorMsg = validateObj.check();    // 获得校验结果    
+  console.log(...errorMsg);
+}
+```
+
+做法解析：先制定校验的一些规则，即策略，添加自定义的校验项，当检验规则发生变化时，更改代码会更简洁
+
+优点：
+
+- 避免多重条件选择语句；
+- 具体的算法封装到策略中，使得代码简洁易懂；
+- 可复用性高
+
+缺点：
+
+- 在代码中增加了许多策略，必须要了解所有的策略；
