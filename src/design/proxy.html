@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>代理模式-图片预加载</title>
+  </head>
+  <body>
+    <input type="checkbox" id="1" />1 <input type="checkbox" id="2" />2
+    <input type="checkbox" id="3" />3 <input type="checkbox" id="4" />4
+  </body>
+  <script>
+    // 背景图片设置
+    let img = (function () {
+      let imgNode = document.createElement("img");
+      document.body.appendChild(imgNode);
+      return {
+        setSrc: function (src) {
+          imgNode.src = src;
+        },
+      };
+    })();
+
+    let proxyImg = (function () {
+      let proxy_img = new Image();
+      // 等待加载完成，获取资源后再渲染
+      proxy_img.onload = function () {
+        img.setSrc(this.src);
+      };
+      return {
+        setSrc: function (src) {
+          // 设置为本地加载图片
+          img.setSrc("../pictures/animal.jpg");
+          proxy_img.src = src;
+        },
+      };
+    })();
+    proxyImg.setSrc(
+      "https://ss3.bdstatic.com/70cFv8Sh_Q1YnxGkpoWK1HF6hhy/it/u=938935733,3477631526&fm=26&gp=0.jpg"
+    );
+  </script>
+  <script>
+    // 此处假装请求服务器
+    let request = function (id) {
+      console.log(`receive from ${id}`);
+    };
+    let checkAction = (function () {
+      let idCache = [], // 此处产生了闭包
+        timer;
+      return function (id) {
+        idCache.push(id);
+        // 如果还在本次间隔期内的请求，则只添加到缓存数组
+        if (timer) {
+          return;
+        }
+        timer = setTimeout(() => {
+          request(idCache.join()); // 请求数据
+          clearTimeout(timer); // 清空计时器
+          timer = null;
+          caches.length = 0; // 清空缓存
+        }, 3000);
+      };
+    })();
+    let checkbox = document.getElementsByTagName("input");
+    for (let item of checkbox) {
+      item.onclick = function () {
+        if (this.checked) {
+          checkAction(this.id);
+        }
+      };
+    }
+  </script>
+</html>

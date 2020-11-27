@@ -149,7 +149,7 @@ function closure() {
 
 #### 2. 策略模式
 
-定义：定义一系列的算法，把它们一个个封装成策略类，并且使它们可以相互替换。
+**定义：**定义一系列的算法，把它们一个个封装成策略类，并且使它们可以相互替换。
 
 ```
 /**
@@ -250,3 +250,220 @@ function form() {
 缺点：
 
 - 在代码中增加了许多策略，必须要了解所有的策略；
+
+#### 3.代理模式
+
+定义：为一个对象提供一个代用品或占位符，以便控制对它的访问。
+
+比如明星的经纪人就是一种代理，代理明星谈合同和安排商业活动。
+
+代理模式又分为以下几种：
+
+- **保护代理**
+
+  用于控制不同权限的对象对目标对象的访问，帮助对象过滤一些条件和请求；
+
+- **虚拟代理**
+
+  把一些开销很大的对象，延迟到真正需要它的时候创建；
+
+由于我们无法判断谁访问了某个对象，所以保护代理不容易实现，使用比较多的则是虚拟代理。
+
+**使用虚拟代理可以实现图片预加载的功能：**
+
+```
+// 背景图片设置
+    let img = (function () {
+      let imgNode = document.createElement("img");
+      document.body.appendChild(imgNode);
+      return {
+        setSrc: function (src) {
+          imgNode.src = src;
+        },
+      };
+    })();
+
+    let proxyImg = (function () {
+      let proxy_img = new Image();
+      // 等待加载完成，获取资源后再渲染
+      proxy_img.onload = function () {
+        img.setSrc(this.src);
+      };
+      return {
+        setSrc: function (src) {
+          // 设置为本地加载图片
+          img.setSrc("../pictures/animal.jpg");
+          proxy_img.src = src;
+        },
+      };
+    })();
+    proxyImg.setSrc(
+     "https://ss3.bdstatic.com/70cFv8Sh_Q1YnxGkpoWK1HF6hhy/it/u=938935733,3477631526&fm=26&gp=0.jpg"
+    );
+```
+
+**除了可以实现图片预加载的功能，还能合并http请求**
+
+比如有多个选项，每点击一个选项则需要发起http请求，那么在短时间内，一直点击，则会对服务器造成一定的压力，那么此时就可以使用合并的方式，比如在每间隔3秒合并请求一次。
+
+```
+// 此处假装请求服务器
+    let request = function (id) {
+      console.log(`receive from ${id}`);
+    };
+    let checkAction = (function () {
+      let idCache = [], // 此处产生了闭包
+        timer;
+      return function (id) {
+        idCache.push(id);
+        // 如果还在本次间隔期内的请求，则只添加到缓存数组
+        if (timer) {
+          return;
+        }
+        timer = setTimeout(() => {
+          request(idCache.join()); // 请求数据
+          clearTimeout(timer); // 清空计时器
+          timer = null;
+          caches.length = 0; // 清空缓存
+        }, 3000);
+      };
+    })();
+    let checkbox = document.getElementsByTagName("input");
+    for (let item of checkbox) {
+      item.onclick = function () {
+        if (this.checked) {
+          checkAction(this.id);
+        }
+      };
+    }
+```
+
+- **缓存代理**
+
+缓存代理，可以为一些复杂的计算缓存值，举个例子，假装累乘是个复杂的操作
+
+```
+let mult = function () {
+  console.log("我在计算！");
+  let a = 1;
+  for (let i = 0, l = arguments.length; i < l; i++) {
+    a = a * arguments[i];
+  }
+  return a;
+};
+
+let proxyMult = (function () {
+  let cache = {};
+  return function () {
+    let args = Array.prototype.join.call(arguments, ",");
+    // 根据参数的拼接方式决定属性名称，1,2,3
+    // 使用 in 会从对象或者原型中查找
+    if (args in cache) {
+      return cache[args];
+    }
+    return (cache[args] = mult.apply(this, arguments));
+  };
+})();
+console.log(proxyMult(1, 2, 3));
+console.log(proxyMult(1, 2, 3));
+```
+
+运行结果：
+
+```
+我在计算！
+6
+6
+```
+
+可以发现同样的参数，实际上就只会被计算一次。同样的道理，同一个页面的数据，也可以通过缓存代理缓存起来，通过调用异步函数之后，在回调函数中缓存数据。
+
+#### 4. 迭代器模式
+
+**定义：**提供一种方法顺序访问一个聚合对象中的各个元素，而不需要暴露该对选哪个的内部表示。
+
+迭代器可以分为两种：
+
+- **内部迭代器**
+
+比如像jquery中的each，js数组的forEach，外界不需要关心迭代器内部的实现，调用就完事了，但是局限是，这个迭代方式被约定好了，跟迭代器的交互也仅仅是一次初始的调用，比如foEach就只能迭代一个数组。
+
+- **外部迭代器**
+
+外部迭代器必须显示地请求迭代下一个元素，就是可以手动请求下一个元素
+
+使用js实现一个迭代器：
+
+```
+let Iterator = function (obj) {
+  let current = 0;
+  // 将索引指向下一个
+  let next = () => (next += 1);
+  // 判断是否已经取道了最后一个
+  let isDone = () => current >= obj.length;
+  let getCurrentItem = function () {
+    return obj[current];
+  };
+  return {
+    next,
+    isDone,
+    getCurrentItem,
+  };
+};
+// 判断两个对象所有位置上对应的元素是否都相等
+let compare = function (iterator1, iterator2) {
+  while (!iterator1.isDone && !iterator2.isDone) {
+    if (iterator1.getCurrentItem() !== iterator2.getCurrentItem()) {
+      throw new Error("不相等");
+      break;
+    }
+    iterator1.next();
+    iterator2.next();
+  }
+  console.log("相等");
+};
+let iterator1 = new Iterator([1, 2, 3]);
+let iterator2 = new Iterator([1, 2, 3]);
+compare(iterator1, iterator2);
+```
+
+除此之外，迭代器还可以迭代类数组对象，比如arguments, {"0":'a', "1": 'b'}，无论是内部迭代器还是外部迭代器，只要被迭代的聚合对象有length属性且可下标访问，就可以被迭代。
+
+#### 5. 发布-订阅模式(观察者模式)
+
+**定义：**定义对象间的一种一对多的依赖关系，当一个对象的状态发生改变时，所有依赖于它的对象都会得到通知。
+
+在js中一般有事件模型来替代订阅模式。
+
+作用：
+
+（1）广泛应用于异步编程中，一种替代传递回调函数的方案，比如订阅ajax请求的error，success等时间，无须关注对象在异步运行期间的内部状态，只关心想要接收的事件的发生点。
+
+（2）可以取代对象之间编码的通知机制，一个对象不用显示地调用另一个对象的接口，降低耦合度。
+
+DOM事件也是使用发布-订阅模式，比如用户点击了某个按钮，我们只需要注册点击事件，等待用户点击了再触发事件。使用`addEventListener`还能随意增加或者删除订阅者。
+
+自定义发布订阅模式
+
+```
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
