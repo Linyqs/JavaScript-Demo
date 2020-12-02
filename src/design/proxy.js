@@ -21,3 +21,21 @@ let proxyMult = (function () {
 })();
 console.log(proxyMult(1, 2, 3));
 console.log(proxyMult(1, 2, 3));
+// function getName () {
+//     console.log(name)
+// }
+// getName();
+// var name;
+showName()
+var showName = function() {
+    console.log(2)
+}
+function showName() {
+    console.log(1)
+}
+
+// function showName() {
+//     console.log(1)
+// }
+// var showName;
+// showName()
