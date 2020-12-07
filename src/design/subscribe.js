@@ -8,23 +8,20 @@ salesOffices.listen = function (key, fn) {
   }
   this.clientList[key].push(fn); // 订阅的消息添加进消息缓存列表
 };
+
+// 定义触发器
 salesOffices.trigger = function () {
   // 发布消息
   var key = Array.prototype.shift.call(arguments), // 取出消息类型
     fns = this.clientList[key]; // 取出该消息对应的回调函数集合
+
   if (!fns || fns.length === 0) {
     // 如果没有订阅该消息，则返回
     return false;
   }
   for (var i = 0, fn; (fn = fns[i++]); ) {
-    fn.apply(this, arguments); // (2) // arguments 是发布消息时附送的参数
-  }
-};
-
-salesOffices.trigger = function () {
-  // 发布消息
-  for (var i = 0, fn; (fn = this.clientList[i++]); ) {
-    fn.apply(this, arguments); // (2) // arguments 是发布消息时带上的参数
+    fn.apply(this, arguments);
+    // arguments 是发布消息时附送的参数
   }
 };
 
